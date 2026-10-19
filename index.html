@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>제주도 여행 경비 정산기 (10.16~18)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif'],
+          },
+          colors: {
+            jeju: {
+              ocean: '#0284c7',
+              tangerine: '#f97316',
+              stone: '#334155',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* iOS 및 모바일 스크롤 및 터치 최적화 */
+    body {
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: none;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans min-h-screen pb-24">
+
+  <!-- 상단 네비게이션 헤더 -->
+  <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 transition-all">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-emerald-400 flex items-center justify-center text-white shadow-sm shadow-sky-500/20">
+          <i data-lucide="palmtree" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 leading-tight">제주도 여행 정산</h1>
+          <p class="text-xs text-slate-500">10.16 ~ 10.18 (12명)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <!-- 수기 메모 확인 버튼 -->
+        <button id="btn-show-memo" class="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors" title="수기 원본 메모 보기">
+          <i data-lucide="file-text" class="w-5 h-5"></i>
+        </button>
+
+        <!-- 관리자 모드 버튼 -->
+        <button id="btn-admin-toggle" class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 transition-all">
+          <i data-lucide="lock" class="w-3.5 h-3.5" id="admin-icon"></i>
+          <span id="admin-btn-text">관리자</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 컨테이너 (모바일 뷰 규격) -->
+  <main class="max-w-md mx-auto px-4 pt-4 space-y-4">
+
+    <!-- 관리자 활성화 상태 알림 배너 -->
+    <div id="admin-status-banner" class="hidden bg-amber-500 text-white px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between shadow-sm animate-fade-in">
+      <div class="flex items-center gap-2">
+        <i data-lucide="shield-check" class="w-4 h-4"></i>
+        <span class="font-medium">관리자 편집 모드 활성화됨</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-reset-default" class="underline text-amber-100 hover:text-white text-[11px]">기본값 복원</button>
+        <button id="btn-admin-logout" class="bg-black/20 px-2 py-1 rounded text-[11px] font-medium hover:bg-black/30">로그아웃</button>
+      </div>
+    </div>
+
+    <!-- 대시보드 카드: 잔액 / 총수입 / 총지출 -->
+    <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 rounded-2xl p-4 text-white shadow-lg shadow-slate-900/10">
+      <div class="flex items-center justify-between mb-3 text-slate-300">
+        <span class="text-xs font-medium tracking-wide">정산 잔액 (수입 - 지출)</span>
+        <span id="badge-headcount" class="text-[11px] bg-white/10 px-2 py-0.5 rounded-full border border-white/10 text-sky-200">
+          기준 12명
+        </span>
+      </div>
+      <div class="flex items-baseline justify-between mb-4">
+        <h2 id="total-balance" class="text-2xl font-black tracking-tight text-white font-mono">0원</h2>
+        <div class="text-right">
+          <span class="text-[11px] text-slate-400 block">1인 환급/추가액</span>
+          <span id="per-person-balance" class="text-sm font-bold text-emerald-400 font-mono">0원</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 pt-3 border-t border-slate-700/60">
+        <div class="bg-white/5 rounded-xl p-2.5 border border-white/5">
+          <div class="flex items-center gap-1.5 text-xs text-emerald-400 mb-1">
+            <i data-lucide="arrow-down-left" class="w-3.5 h-3.5"></i>
+            <span>총 수입</span>
+          </div>
+          <p id="total-income" class="text-base font-bold font-mono">0원</p>
+        </div>
+        <div class="bg-white/5 rounded-xl p-2.5 border border-white/5">
+          <div class="flex items-center gap-1.5 text-xs text-rose-400 mb-1">
+            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+            <span>총 지출</span>
+          </div>
+          <p id="total-expense" class="text-base font-bold font-mono">0원</p>
+        </div>
+      </div>
+
+      <!-- 1인당 지출 통계 배지 -->
+      <div class="mt-3 flex items-center justify-between bg-black/20 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-300">
+        <span class="flex items-center gap-1">
+          <i data-lucide="users" class="w-3.5 h-3.5 text-sky-400"></i>
+          1인당 실제 평균 지출액
+        </span>
+        <span id="per-person-cost" class="font-semibold text-white font-mono">0원</span>
+      </div>
+    </div>
+
+    <!-- 검색 및 필터 바 -->
+    <div class="space-y-2">
+      <!-- 검색창 -->
+      <div class="relative">
+        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+        <input type="text" id="input-search" placeholder="항목명, 비고, 장소 검색..." 
+               class="w-full pl-9 pr-8 py-2 bg-white rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent shadow-xs">
+        <button id="btn-clear-search" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 카테고리 칩 필터 -->
+      <div class="flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-0.5" id="category-chips">
+        <button class="filter-chip active text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-900 text-white whitespace-nowrap shadow-xs" data-filter="all">전체</button>
+        <button class="filter-chip text-xs font-medium px-3 py-1.5 rounded-full bg-white text-slate-600 border border-slate-200 whitespace-nowrap hover:bg-slate-50" data-filter="수입">수입</button>
+        <button class="filter-chip text-xs font-medium px-3 py-1.5 rounded-full bg-white text-slate-600 border border-slate-200 whitespace-nowrap hover:bg-slate-50" data-filter="식대">식대/간식</button>
+        <button class="filter-chip text-xs font-medium px-3 py-1.5 rounded-full bg-white text-slate-600 border border-slate-200 whitespace-nowrap hover:bg-slate-50" data-filter="교통">교통/차량</button>
+        <button class="filter-chip text-xs font-medium px-3 py-1.5 rounded-full bg-white text-slate-600 border border-slate-200 whitespace-nowrap hover:bg-slate-50" data-filter="관광">관광/입장</button>
+        <button class="filter-chip text-xs font-medium px-3 py-1.5 rounded-full bg-white text-slate-600 border border-slate-200 whitespace-nowrap hover:bg-slate-50" data-filter="기타">기타/팁</button>
+      </div>
+    </div>
+
+    <!-- 정산 내역 리스트 -->
+    <div class="space-y-2.5">
+      <div class="flex items-center justify-between px-1">
+        <span class="text-xs font-bold text-slate-600" id="item-count-label">내역 (0건)</span>
+        <div class="text-[11px] text-slate-500 flex items-center gap-1">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span> 수입
+          <span class="inline-block w-2 h-2 rounded-full bg-rose-500 ml-1.5"></span> 지출
+        </div>
+      </div>
+
+      <div id="item-list" class="space-y-2">
+        <!-- JavaScript로 동적 렌더링 -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 플로팅 항목 추가 버튼 (관리자 모드 전용) -->
+  <div id="fab-container" class="fixed bottom-6 right-6 z-30 hidden">
+    <button id="btn-add-item" class="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 active:scale-95 text-white font-medium text-sm px-4 py-3 rounded-full shadow-lg shadow-sky-600/30 transition-transform">
+      <i data-lucide="plus" class="w-5 h-5"></i>
+      <span>내역 추가</span>
+    </button>
+  </div>
+
+  <!-- 모달 1: 관리자 로그인 비밀번호 입력 -->
+  <div id="modal-admin-auth" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl w-full max-w-xs p-5 shadow-2xl space-y-4">
+      <div class="text-center">
+        <div class="w-12 h-12 bg-sky-50 text-sky-600 rounded-full flex items-center justify-center mx-auto mb-2">
+          <i data-lucide="key-round" class="w-6 h-6"></i>
+        </div>
+        <h3 class="text-base font-bold text-slate-900">관리자 인증</h3>
+        <p class="text-xs text-slate-500 mt-1">항목 수정 및 추가를 위해 비밀번호를 입력해주세요.</p>
+      </div>
+
+      <div>
+        <input type="password" id="input-admin-pw" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="비밀번호 4자리" 
+               class="w-full text-center tracking-widest text-lg font-bold py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+        <p id="auth-error-msg" class="text-xs text-rose-500 text-center mt-1.5 hidden">비밀번호가 올바르지 않습니다.</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <button id="btn-cancel-auth" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50">취소</button>
+        <button id="btn-confirm-auth" class="w-full py-2.5 rounded-xl bg-sky-600 text-white text-xs font-semibold hover:bg-sky-700">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 모달 2: 항목 추가 / 수정 -->
+  <div id="modal-item-form" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <h3 id="form-modal-title" class="text-base font-bold text-slate-900">내역 추가</h3>
+        <button id="btn-close-form" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="item-editor-form" class="space-y-3">
+        <input type="hidden" id="edit-item-id">
+
+        <!-- 유형 선택 (수입 / 지출) -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">구분</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center justify-center gap-1.5 border rounded-xl py-2 cursor-pointer text-xs font-medium has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-500 has-[:checked]:text-emerald-700">
+              <input type="radio" name="item-type" value="income" class="sr-only" checked>
+              <i data-lucide="arrow-down-left" class="w-4 h-4"></i> 수입
+            </label>
+            <label class="flex items-center justify-center gap-1.5 border rounded-xl py-2 cursor-pointer text-xs font-medium has-[:checked]:bg-rose-50 has-[:checked]:border-rose-500 has-[:checked]:text-rose-700">
+              <input type="radio" name="item-type" value="expense" class="sr-only">
+              <i data-lucide="arrow-up-right" class="w-4 h-4"></i> 지출
+            </label>
+          </div>
+        </div>
+
+        <!-- 일자 & 카테고리 -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">일자</label>
+            <input type="text" id="form-date" placeholder="예: 10.17" required
+                   class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">카테고리</label>
+            <select id="form-category" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none bg-white">
+              <option value="회비">회비</option>
+              <option value="찬조">찬조</option>
+              <option value="식대">식대/간식</option>
+              <option value="교통">교통/차량</option>
+              <option value="관광">관광/입장</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 항목명 -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">항목명</label>
+          <input type="text" id="form-title" placeholder="예: 신옛촌주점 점심 식대" required
+                 class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+        </div>
+
+        <!-- 금액 -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">금액 (원)</label>
+          <input type="number" id="form-amount" placeholder="0" required min="0" step="10"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm font-semibold font-mono focus:ring-2 focus:ring-sky-500 focus:outline-none">
+        </div>
+
+        <!-- 상세 설명 및 비고 -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">상세 내용 / 비고</label>
+          <input type="text" id="form-note" placeholder="메모 또는 추가 참고사항" 
+                 class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" id="btn-delete-item" class="hidden px-4 py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold">
+            삭제
+          </button>
+          <button type="submit" class="flex-1 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-md shadow-sky-600/20">
+            저장하기
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 모달 3: 수기 원본 메모 & 정산 노트 모달 -->
+  <div id="modal-handwritten-note" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl">
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="book-open" class="w-5 h-5 text-sky-600"></i>
+          <h3 class="text-sm font-bold text-slate-900">수기 노트 원본 분석 & 비고</h3>
+        </div>
+        <button id="btn-close-note" class="p-1 text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-3.5 text-xs text-slate-600">
+        <!-- 섹션 1 -->
+        <div class="bg-amber-50/70 border border-amber-200/60 rounded-xl p-3">
+          <h4 class="font-bold text-amber-900 flex items-center gap-1.5 mb-1">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-600"></i>
+            식대 소계 수기 기록 차이 안내
+          </h4>
+          <p class="leading-relaxed text-amber-800">
+            노트 메모에는 식대 4건의 합계가 <strong>1,357,100원</strong>으로 기재되어 있으나, 적혀있는 개별 내역(240,000 + 360,000 + 213,000 + 510,000)의 실제 합산은 <strong>1,323,000원</strong>입니다. (차액: +34,100원 발생) 본 앱은 실제 합산 금액을 기준으로 정확히 집계합니다.
+          </p>
+        </div>
+
+        <!-- 섹션 2 -->
+        <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 space-y-1">
+          <h4 class="font-bold text-slate-800">동그라미 표시 찬조 메모</h4>
+          <p class="text-slate-600 leading-relaxed italic">
+            "퇴장 후 해장 다과 11명 22,000원 지출<br>
+            남중남, 한정녀, 김시영 원파 및 안동친구분들 여비 찬조했습니다 100,000 지출"
+          </p>
+        </div>
+
+        <!-- 섹션 3 -->
+        <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 space-y-1">
+          <h4 class="font-bold text-slate-800">노트 하단 1/N 정산 필산 흔적</h4>
+          <ul class="list-disc list-inside space-y-0.5 text-slate-600">
+            <li>대구공항 식대 139,000원</li>
+            <li>총지출 배분 계산: 644,700 ÷ 10 = 64,400원</li>
+            <li>728,000 ÷ 10 = 72,800원 / 712,000원 계산 흔적</li>
+          </ul>
+        </div>
+
+        <!-- 섹션 4 -->
+        <div class="bg-sky-50 border border-sky-100 rounded-xl p-3">
+          <h4 class="font-bold text-sky-900 mb-1">여행 기본 정보</h4>
+          <p>• 일정: 10월 16일 ~ 10월 18일 (제주도)</p>
+          <p>• 참가 인원: 총 12명 (더파크공원 등 일부 일정 13명/11명 참여)</p>
+          <p>• 기본 회비: 1인당 300,000원</p>
+        </div>
+      </div>
+
+      <div class="p-3 border-t border-slate-100 text-center">
+        <button id="btn-close-note-bottom" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 토스트 알림 메시지 -->
+  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-all duration-300">
+    알림 내용
+  </div>
+
+  <script>
+    // ------------------------------------------------------------------
+    // 초기 기본 데이터셋 (제주도 수기 노트 완벽 전사)
+    // ------------------------------------------------------------------
+    const DEFAULT_ITEMS = [
+      // 수입
+      { id: 'inc-1', type: 'income', date: '10.16', category: '회비', title: '제주도 여행 회비', note: '1인당 300,000원 × 12명', amount: 3600000 },
+      { id: 'inc-2', type: 'income', date: '10.16', category: '찬조', title: '탁태구 친구 찬조금', note: '탁태구 친구 찬조', amount: 100000 },
+
+      // 지출 (일자 순 및 메모 흐름)
+      { id: 'exp-1', type: 'expense', date: '10.16', category: '관광', title: '라온랜드 등 입장료', note: '라온랜드/주변 관광 입장료', amount: 50000 },
+      { id: 'exp-2', type: 'expense', date: '10.16', category: '식대', title: '간식 (팝콘)', note: '이동 중 팝콘 간식', amount: 12000 },
+      { id: 'exp-3', type: 'expense', date: '10.16~18', category: '교통', title: '렌트카 대여 비용', note: '전 일정 렌트카 차량비', amount: 800000 },
+      
+      { id: 'exp-4', type: 'expense', date: '10.17', category: '식대', title: '중식 (신옛촌주점)', note: '점심 식사', amount: 240000 },
+      { id: 'exp-5', type: 'expense', date: '10.17', category: '식대', title: '석식 (코시롱 흑돼지)', note: '원가 364,000원 / 4,000원 할인 적용', amount: 360000 },
+      { id: 'exp-6', type: 'expense', date: '10.17', category: '관광', title: '더파크 공원 입장료', note: '더파크 공원 13명 관람', amount: 221000 },
+      { id: 'exp-7', type: 'expense', date: '10.17', category: '기타', title: '운전기사분 팁', note: '기사님 수고비 팁', amount: 100000 },
+
+      { id: 'exp-8', type: 'expense', date: '10.18', category: '식대', title: '중식 (등대와 풍차)', note: '전복 요리 등', amount: 213000 },
+      { id: 'exp-9', type: 'expense', date: '10.18', category: '식대', title: '석식 (등대와 바랑)', note: '저녁 식사', amount: 510000 },
+      { id: 'exp-10', type: 'expense', date: '10.18', category: '교통', title: '택시비', note: '이동 택시비', amount: 48300 },
+
+      // 추가 경비 & 지역별 차비 지원
+      { id: 'exp-11', type: 'expense', date: '기타', category: '식대', title: '해장 다과', note: '퇴장 후 해장/다과 11명', amount: 22000 },
+      { id: 'exp-12', type: 'expense', date: '기타', category: '교통', title: '포항 차비 지원 (김해정)', note: '포항 김해정 여비 지원', amount: 80000 },
+      { id: 'exp-13', type: 'expense', date: '기타', category: '교통', title: '부산 차비 지원 (유순화)', note: '부산 유순화 여비 지원', amount: 80000 },
+      { id: 'exp-14', type: 'expense', date: '기타', category: '교통', title: '길안·청송 차비 지원', note: '길안/청송 3명 여비 지원', amount: 100000 },
+      { id: 'exp-15', type: 'expense', date: '기타', category: '식대', title: '대구공항 식대', note: '대구공항 식사 비용', amount: 139000 },
+    ];
+
+    const STORAGE_KEY = 'jeju_settlement_data_v1';
+    const ADMIN_PASS = '4946';
+
+    // 앱 상태 관리
+    let items = [];
+    let isAdmin = false;
+    let currentFilter = 'all';
+    let searchQuery = '';
+
+    // ------------------------------------------------------------------
+    // 유틸 함수
+    // ------------------------------------------------------------------
+    function formatMoney(num) {
+      return (Number(num) || 0).toLocaleString('ko-KR') + '원';
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2200);
+    }
+
+    // ------------------------------------------------------------------
+    // 로컬스토리지 로드/저장
+    // ------------------------------------------------------------------
+    function loadData() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          items = JSON.parse(saved);
+        } catch (e) {
+          items = [...DEFAULT_ITEMS];
+        }
+      } else {
+        items = [...DEFAULT_ITEMS];
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    // ------------------------------------------------------------------
+    // 대시보드 및 리스트 렌더링
+    // ------------------------------------------------------------------
+    function render() {
+      // 1. 계산
+      let totalIncome = 0;
+      let totalExpense = 0;
+
+      items.forEach(item => {
+        const val = Number(item.amount) || 0;
+        if (item.type === 'income') {
+          totalIncome += val;
+        } else {
+          totalExpense += val;
+        }
+      });
+
+      const balance = totalIncome - totalExpense;
+      const headCount = 12;
+      const perPersonExpense = Math.round(totalExpense / headCount);
+      const perPersonRemaining = Math.round(balance / headCount);
+
+      // 2. 대시보드 업데이트
+      document.getElementById('total-balance').textContent = formatMoney(balance);
+      document.getElementById('total-income').textContent = formatMoney(totalIncome);
+      document.getElementById('total-expense').textContent = formatMoney(totalExpense);
+      document.getElementById('per-person-cost').textContent = formatMoney(perPersonExpense);
+
+      const perPersonEl = document.getElementById('per-person-balance');
+      if (perPersonRemaining >= 0) {
+        perPersonEl.textContent = `+${formatMoney(perPersonRemaining)}`;
+        perPersonEl.className = 'text-sm font-bold text-emerald-400 font-mono';
+      } else {
+        perPersonEl.textContent = `-${formatMoney(Math.abs(perPersonRemaining))}`;
+        perPersonEl.className = 'text-sm font-bold text-rose-400 font-mono';
+      }
+
+      // 3. 필터링 & 검색
+      const filtered = items.filter(item => {
+        // 카테고리 필터
+        if (currentFilter === '수입' && item.type !== 'income') return false;
+        if (currentFilter === '식대' && item.category !== '식대') return false;
+        if (currentFilter === '교통' && item.category !== '교통') return false;
+        if (currentFilter === '관광' && item.category !== '관광') return false;
+        if (currentFilter === '기타' && (item.category !== '기타' && item.category !== '찬조')) return false;
+
+        // 검색어 필터
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          const target = `${item.title} ${item.note || ''} ${item.date} ${item.category}`.toLowerCase();
+          return target.includes(q);
+        }
+        return true;
+      });
+
+      // 4. 리스트 렌더링
+      const listEl = document.getElementById('item-list');
+      document.getElementById('item-count-label').textContent = `내역 (${filtered.length}건)`;
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200">
+            <i data-lucide="inbox" class="w-10 h-10 text-slate-300 mx-auto mb-2"></i>
+            <p class="text-xs text-slate-500 font-medium">해당 조건의 내역이 없습니다.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      let html = '';
+      filtered.forEach(item => {
+        const isIncome = item.type === 'income';
+        const badgeColor = isIncome ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200';
+        const amountColor = isIncome ? 'text-emerald-600' : 'text-slate-900';
+        const sign = isIncome ? '+' : '-';
+
+        html += `
+          <div class="bg-white rounded-2xl p-3.5 border border-slate-200/90 hover:border-slate-300 transition-all shadow-xs flex items-center justify-between gap-3 ${isAdmin ? 'cursor-pointer hover:bg-slate-50' : ''}" 
+               ${isAdmin ? `onclick="openEditModal('${item.id}')"` : ''}>
+            <div class="flex items-start gap-3 flex-1 min-w-0">
+              <div class="w-10 h-10 rounded-xl ${isIncome ? 'bg-emerald-100/80 text-emerald-700' : 'bg-rose-100/70 text-rose-700'} flex-shrink-0 flex items-center justify-center font-bold text-xs">
+                ${item.date}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 mb-0.5">
+                  <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded border ${badgeColor}">${item.category}</span>
+                  <h4 class="text-sm font-semibold text-slate-900 truncate">${item.title}</h4>
+                </div>
+                ${item.note ? `<p class="text-xs text-slate-500 truncate">${item.note}</p>` : ''}
+              </div>
+            </div>
+
+            <div class="text-right flex-shrink-0 flex items-center gap-2">
+              <span class="text-sm font-bold font-mono ${amountColor}">
+                ${sign}${formatMoney(item.amount)}
+              </span>
+              ${isAdmin ? `<i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i>` : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      listEl.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    // ------------------------------------------------------------------
+    // 관리자 모드 관련
+    // ------------------------------------------------------------------
+    function updateAdminUI() {
+      const banner = document.getElementById('admin-status-banner');
+      const fab = document.getElementById('fab-container');
+      const adminIcon = document.getElementById('admin-icon');
+      const adminBtnText = document.getElementById('admin-btn-text');
+
+      if (isAdmin) {
+        banner.classList.remove('hidden');
+        fab.classList.remove('hidden');
+        adminIcon.setAttribute('data-lucide', 'unlock');
+        adminBtnText.textContent = '관리중';
+        document.getElementById('btn-admin-toggle').classList.add('bg-amber-100', 'border-amber-300', 'text-amber-800');
+      } else {
+        banner.classList.add('hidden');
+        fab.classList.add('hidden');
+        adminIcon.setAttribute('data-lucide', 'lock');
+        adminBtnText.textContent = '관리자';
+        document.getElementById('btn-admin-toggle').classList.remove('bg-amber-100', 'border-amber-300', 'text-amber-800');
+      }
+      lucide.createIcons();
+      render();
+    }
+
+    // ------------------------------------------------------------------
+    // 모달 제어
+    // ------------------------------------------------------------------
+    window.openEditModal = function(id) {
+      if (!isAdmin) return;
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('form-modal-title').textContent = '내역 수정';
+      document.getElementById('edit-item-id').value = item.id;
+      document.querySelector(`input[name="item-type"][value="${item.type}"]`).checked = true;
+      document.getElementById('form-date').value = item.date;
+      document.getElementById('form-category').value = item.category;
+      document.getElementById('form-title').value = item.title;
+      document.getElementById('form-amount').value = item.amount;
+      document.getElementById('form-note').value = item.note || '';
+
+      document.getElementById('btn-delete-item').classList.remove('hidden');
+      document.getElementById('modal-item-form').classList.remove('hidden');
+    };
+
+    function openAddModal() {
+      document.getElementById('form-modal-title').textContent = '새 내역 추가';
+      document.getElementById('edit-item-id').value = '';
+      document.getElementById('item-editor-form').reset();
+      document.getElementById('form-date').value = '10.17';
+      document.querySelector(`input[name="item-type"][value="expense"]`).checked = true;
+      document.getElementById('btn-delete-item').classList.add('hidden');
+      document.getElementById('modal-item-form').classList.remove('hidden');
+    }
+
+    function closeFormModal() {
+      document.getElementById('modal-item-form').classList.add('hidden');
+    }
+
+    // ------------------------------------------------------------------
+    // 이벤트 리스너 등록
+    // ------------------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      render();
+
+      // 관리자 버튼 클릭
+      document.getElementById('btn-admin-toggle').addEventListener('click', () => {
+        if (isAdmin) {
+          isAdmin = false;
+          updateAdminUI();
+          showToast('관리자 모드가 해제되었습니다.');
+        } else {
+          document.getElementById('input-admin-pw').value = '';
+          document.getElementById('auth-error-msg').classList.add('hidden');
+          document.getElementById('modal-admin-auth').classList.remove('hidden');
+          setTimeout(() => document.getElementById('input-admin-pw').focus(), 100);
+        }
+      });
+
+      // 관리자 비번 확인
+      document.getElementById('btn-confirm-auth').addEventListener('click', () => {
+        const pw = document.getElementById('input-admin-pw').value.trim();
+        if (pw === ADMIN_PASS) {
+          isAdmin = true;
+          document.getElementById('modal-admin-auth').classList.add('hidden');
+          updateAdminUI();
+          showToast('관리자로 인증되었습니다. (항목 터치 시 수정)');
+        } else {
+          document.getElementById('auth-error-msg').classList.remove('hidden');
+        }
+      });
+
+      // 엔터키로 비번 제출
+      document.getElementById('input-admin-pw').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+          document.getElementById('btn-confirm-auth').click();
+        }
+      });
+
+      // 관리자 인증 취소
+      document.getElementById('btn-cancel-auth').addEventListener('click', () => {
+        document.getElementById('modal-admin-auth').classList.add('hidden');
+      });
+
+      // 관리자 로그아웃 버튼
+      document.getElementById('btn-admin-logout').addEventListener('click', () => {
+        isAdmin = false;
+        updateAdminUI();
+        showToast('관리자 모드가 종료되었습니다.');
+      });
+
+      // 기본 데이터 초기화
+      document.getElementById('btn-reset-default').addEventListener('click', () => {
+        items = [...DEFAULT_ITEMS];
+        saveData();
+        render();
+        showToast('기본 수기 메모 원본 데이터로 복원되었습니다.');
+      });
+
+      // 항목 추가 FAB 클릭
+      document.getElementById('btn-add-item').addEventListener('click', openAddModal);
+      document.getElementById('btn-close-form').addEventListener('click', closeFormModal);
+
+      // 폼 제출 (추가 / 수정)
+      document.getElementById('item-editor-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const editId = document.getElementById('edit-item-id').value;
+        const type = document.querySelector('input[name="item-type"]:checked').value;
+        const date = document.getElementById('form-date').value.trim();
+        const category = document.getElementById('form-category').value;
+        const title = document.getElementById('form-title').value.trim();
+        const amount = parseInt(document.getElementById('form-amount').value, 10) || 0;
+        const note = document.getElementById('form-note').value.trim();
+
+        if (editId) {
+          // 수정
+          const idx = items.findIndex(i => i.id === editId);
+          if (idx !== -1) {
+            items[idx] = { ...items[idx], type, date, category, title, amount, note };
+            showToast('내역이 성공적으로 수정되었습니다.');
+          }
+        } else {
+          // 새 항목 추가
+          const newItem = {
+            id: 'item-' + Date.now(),
+            type,
+            date,
+            category,
+            title,
+            amount,
+            note
+          };
+          items.unshift(newItem);
+          showToast('새 내역이 추가되었습니다.');
+        }
+
+        saveData();
+        closeFormModal();
+        render();
+      });
+
+      // 항목 삭제
+      document.getElementById('btn-delete-item').addEventListener('click', () => {
+        const editId = document.getElementById('edit-item-id').value;
+        if (!editId) return;
+
+        items = items.filter(i => i.id !== editId);
+        saveData();
+        closeFormModal();
+        render();
+        showToast('내역이 삭제되었습니다.');
+      });
+
+      // 수기 노트 모달 열기/닫기
+      document.getElementById('btn-show-memo').addEventListener('click', () => {
+        document.getElementById('modal-handwritten-note').classList.remove('hidden');
+      });
+      document.getElementById('btn-close-note').addEventListener('click', () => {
+        document.getElementById('modal-handwritten-note').classList.add('hidden');
+      });
+      document.getElementById('btn-close-note-bottom').addEventListener('click', () => {
+        document.getElementById('modal-handwritten-note').classList.add('hidden');
+      });
+
+      // 필터 칩 클릭 이벤트
+      document.querySelectorAll('.filter-chip').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.filter-chip').forEach(b => {
+            b.classList.remove('bg-slate-900', 'text-white', 'shadow-xs', 'active');
+            b.classList.add('bg-white', 'text-slate-600', 'border', 'border-slate-200');
+          });
+          this.classList.remove('bg-white', 'text-slate-600', 'border', 'border-slate-200');
+          this.classList.add('bg-slate-900', 'text-white', 'shadow-xs', 'active');
+
+          currentFilter = this.getAttribute('data-filter');
+          render();
+        });
+      });
+
+      // 검색 인풋 핸들러
+      const searchInput = document.getElementById('input-search');
+      const clearSearchBtn = document.getElementById('btn-clear-search');
+
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value.trim();
+        if (searchQuery) {
+          clearSearchBtn.classList.remove('hidden');
+        } else {
+          clearSearchBtn.classList.add('hidden');
+        }
+        render();
+      });
+
+      clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        searchQuery = '';
+        clearSearchBtn.classList.add('hidden');
+        render();
+      });
+    });
+  </script>
+</body>
+</html>
